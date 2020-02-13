@@ -51,8 +51,8 @@
     "dfa": "^1.2.0",
     "restructure": "^0.5.3",
     "tiny-inflate": "^1.0.2",
-    "unicode-properties": "^1.2.2",
-    "unicode-trie": "^0.3.0"
+    "unicode-properties": "github:propellerfactory/unicode-properties",
+    "unicode-trie": "github:propellerfactory/unicode-trie"
   },
   "devDependencies": {
     "babel-cli": "^6.26.0",
