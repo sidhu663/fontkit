@@ -11607,62 +11607,46 @@ var TTFGlyph = function (_Glyph) {
 
   TTFGlyph.prototype._getPath = function _getPath() {
     var contours = this._getContours();
-    var path = new Path();
+    var p = new Path();
 
-    for (var i = 0; i < contours.length; i++) {
-      var contour = contours[i];
-      var firstPt = contour[0];
-      var lastPt = contour[contour.length - 1];
-      var start = 0;
-
-      if (firstPt.onCurve) {
-        // The first point will be consumed by the moveTo command, so skip in the loop
-        var curvePt = null;
-        start = 1;
+    for (var contourIndex = 0; contourIndex < contours.length; ++contourIndex) {
+      var contour = contours[contourIndex];
+      var prev = null;
+      var curr = contour[contour.length - 1];
+      var next = contour[0];
+      if (curr.onCurve) {
+        p.moveTo(curr.x, curr.y);
       } else {
-        if (lastPt.onCurve) {
-          // Start at the last point if the first point is off curve and the last point is on curve
-          firstPt = lastPt;
+        if (next.onCurve) {
+          p.moveTo(next.x, next.y);
         } else {
-          // Start at the middle if both the first and last points are off curve
-          firstPt = new Point(false, false, (firstPt.x + lastPt.x) / 2, (firstPt.y + lastPt.y) / 2);
-        }
-
-        var curvePt = firstPt;
-      }
-
-      path.moveTo(firstPt.x, firstPt.y);
-
-      for (var j = start; j < contour.length; j++) {
-        var pt = contour[j];
-        var prevPt = j === 0 ? firstPt : contour[j - 1];
-
-        if (prevPt.onCurve && pt.onCurve) {
-          path.lineTo(pt.x, pt.y);
-        } else if (prevPt.onCurve && !pt.onCurve) {
-          var curvePt = pt;
-        } else if (!prevPt.onCurve && !pt.onCurve) {
-          var midX = (prevPt.x + pt.x) / 2;
-          var midY = (prevPt.y + pt.y) / 2;
-          path.quadraticCurveTo(prevPt.x, prevPt.y, midX, midY);
-          var curvePt = pt;
-        } else if (!prevPt.onCurve && pt.onCurve) {
-          path.quadraticCurveTo(curvePt.x, curvePt.y, pt.x, pt.y);
-          var curvePt = null;
-        } else {
-          throw new Error("Unknown TTF path state");
+          // If both first and last points are off-curve, start at their middle.
+          var start = { x: (curr.x + next.x) * 0.5, y: (curr.y + next.y) * 0.5 };
+          p.moveTo(start.x, start.y);
         }
       }
-
-      // Connect the first and last points
-      if (curvePt) {
-        path.quadraticCurveTo(curvePt.x, curvePt.y, firstPt.x, firstPt.y);
+      for (var i = 0; i < contour.length; ++i) {
+        prev = curr;
+        curr = next;
+        next = contour[(i + 1) % contour.length];
+        if (curr.onCurve) {
+          // This is a straight line.
+          p.lineTo(curr.x, curr.y);
+        } else {
+          var prev2 = prev;
+          var next2 = next;
+          if (!prev.onCurve) {
+            prev2 = { x: (curr.x + prev.x) * 0.5, y: (curr.y + prev.y) * 0.5 };
+          }
+          if (!next.onCurve) {
+            next2 = { x: (curr.x + next.x) * 0.5, y: (curr.y + next.y) * 0.5 };
+          }
+          p.quadraticCurveTo(curr.x, curr.y, next2.x, next2.y);
+        }
       }
-
-      path.closePath();
+      p.closePath();
     }
-
-    return path;
+    return p;
   };
 
   return TTFGlyph;
